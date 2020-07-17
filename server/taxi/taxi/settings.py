@@ -134,3 +134,5 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+ASGI_APPLICATION = 'taxi.routing.application'
