@@ -136,3 +136,9 @@ CHANNEL_LAYERS = {
 }
 
 ASGI_APPLICATION = 'taxi.routing.application'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',
+    )
+}
