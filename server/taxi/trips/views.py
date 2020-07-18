@@ -1,16 +1,14 @@
 from django.contrib.auth import get_user_model, login, logout
-from rest_framework import generics, permissions, status, views
 from rest_framework.response import Response
-from django.contrib.auth.forms import AuthenticationForm 
-
-
-from .serializers import UserSerializer
-
+from django.contrib.auth.forms import AuthenticationForm
+from rest_framework import generics, permissions, status, views, viewsets 
+from .serializers import UserSerializer, TripSerializer
+from .models import Trip
 
 class SignUpView(generics.CreateAPIView):
     queryset = get_user_model().objects.all()
     serializer_class = UserSerializer
-    
+
 
 class LogInView(views.APIView):
     def post(self, request):
@@ -22,9 +20,18 @@ class LogInView(views.APIView):
         else:
             return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class LogOutView(views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, *args, **kwargs):
         logout(self.request)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TripView(viewsets.ReadOnlyModelViewSet):
+    lookup_field = 'id' 
+    lookup_url_kwarg = 'trip_id'
+    permission_classes = (permissions.IsAuthenticated,)
+    queryset = Trip.objects.all()
+    serializer_class = TripSerializer
