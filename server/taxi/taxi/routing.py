@@ -1,3 +1,13 @@
-from channels.routing import ProtocolTypeRouter
+from channels.routing import ProtocolTypeRouter, URLRouter
+from django.urls import path
+from channels.auth import AuthMiddlewareStack
 
-application = ProtocolTypeRouter({})
+from trips.consumer import TaxiConsumer
+
+application = ProtocolTypeRouter({
+    'websocket': AuthMiddlewareStack(
+        URLRouter([
+            path('taxi/', TaxiConsumer),
+        ])
+    )
+})
