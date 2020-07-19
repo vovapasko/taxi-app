@@ -111,3 +111,37 @@ class TestWebsockets:
         assert user.username == data['rider'].get('username')
 
         await communicator.disconnect()
+
+    async def test_rider_is_added_to_trip_group_on_create(self, settings):
+        settings.CHANNEL_LAYERS = TEST_CHANNEL_LAYERS
+
+        user = await create_user(
+            username='rider@example.com',
+            group='rider'
+        )
+
+        # Connect and send JSON message to server.
+        communicator = await connect_and_create_trip(user=user)
+
+        # Receive JSON message from server.
+        # Rider should be added to new trip's group.
+        response = await communicator.receive_json_from()
+        data = response.get('data')
+
+        trip_id = data['id']
+        message = {
+            'type': 'echo.message',
+            'data': 'This is a test message.'
+        }
+
+        # Send JSON message to new trip's group.
+        channel_layer = get_channel_layer()
+        await channel_layer.group_send(trip_id, message=message)
+
+        # Receive JSON message from server.
+        response = await communicator.receive_json_from()
+
+        # Confirm data.
+        assert message == response
+
+        await communicator.disconnect()
