@@ -56,6 +56,24 @@ async def auth_connect(user):
     return communicator
 
 
+async def connect_and_create_trip(
+    *,
+    user,
+    pick_up_address='A',
+    drop_off_address='B'
+):
+    communicator = await auth_connect(user)
+    await communicator.send_json_to({
+        'type': 'create.trip',
+        'data': {
+            'pick_up_address': pick_up_address,
+            'drop_off_address': drop_off_address,
+            'rider': user.id,
+        }
+    })
+    return communicator
+
+
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction=True)
 class TestWebsockets:
@@ -78,17 +96,7 @@ class TestWebsockets:
             username='rider@example.com',
             group='rider'
         )
-        communicator = await auth_connect(user)
-
-        # Send JSON message to server.
-        await communicator.send_json_to({
-            'type': 'create.trip',
-            'data': {
-                'pick_up_address': 'A',
-                'drop_off_address': 'B',
-                'rider': user.id,
-            }
-        })
+        communicator = await connect_and_create_trip(user=user)
 
         # Receive JSON message from server.
         response = await communicator.receive_json_from()
