@@ -33,6 +33,8 @@ class TaxiConsumer(AsyncJsonWebsocketConsumer):
         message_type = content.get('type')
         if message_type == 'create.trip':
             await self.create_trip(content)
+        elif message_type == 'update.trip':
+            await self.update_trip(content)
 
     # new
     async def echo_message(self, event):
@@ -51,9 +53,27 @@ class TaxiConsumer(AsyncJsonWebsocketConsumer):
                 channel=self.channel_name
             )
 
-
         await self.send_json({
             'type': 'create.trip',
+            'data': trip_data
+        })
+
+    async def update_trip(self, event):
+        trip = await self._update_trip(event.get('data'))
+        trip_id = f'{trip.id}'
+        trip_data = ReadOnlyTripSerializer(trip).data
+
+        # Handle add only if trip is not being tracked.
+        # This happens when a driver accepts a request.
+        if trip_id not in self.trips:
+            self.trips.add(trip_id)
+            await self.channel_layer.group_add(
+                group=trip_id,
+                channel=self.channel_name
+            )
+
+        await self.send_json({
+            'type': 'update.trip',
             'data': trip_data
         })
 
@@ -94,3 +114,11 @@ class TaxiConsumer(AsyncJsonWebsocketConsumer):
             return user.trips_as_rider.exclude(
                 status=Trip.COMPLETED
             ).only('id').values_list('id', flat=True)
+
+    @database_sync_to_async
+    def _update_trip(self, content):
+        instance = Trip.objects.get(id=content.get('id'))
+        serializer = TripSerializer(data=content)
+        serializer.is_valid(raise_exception=True)
+        trip = serializer.update(instance, serializer.validated_data)
+        return trip
